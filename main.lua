@@ -1,7 +1,7 @@
 --[[
 	Stealth
 	Author: mort
-	v1.0
+	v1.2
 ]] --
 
 local config = require("stealth.config")
@@ -78,46 +78,77 @@ local function lightCheck()
 	local lightTerm = 0.5
 
 	--weather
-	--torches
 	--additional day stuff
 	--hide bar during day?
-	--lightcheck more frequently?
 
 	if tes3.player.cell.isInterior then
 		for ref in tes3.player.cell:iterateReferences(tes3.objectType.light) do
 			if tes3.testLineOfSight({reference1=ref,reference2=tes3.player}) then
 				if (ref.light ~= nil) then
 					local dist = ref.position:distance(tes3.player.position)
-					if dist <= 150 then dist = 151 end
+					if dist <= 150 then dist = 151 end --needed or math goes berserk
 					local lightTest = 1/math.log10(dist/150)
 					if lightTest > lightTerm then lightTerm = lightTest end
 				end
 			end
 		end
 	else
-		if tes3.worldController.hour.value < tes3.worldController.weatherController.sunriseHour or tes3.worldController.hour.value > tes3.worldController.weatherController.sunsetHour then
-			for _, cell in pairs(tes3.getActiveCells()) do
-				for ref in cell:iterateReferences(tes3.objectType.light) do
-					if tes3.testLineOfSight({reference1=ref,reference2=tes3.player}) then
-						if (ref.light ~= nil) then
-							local dist = ref.position:distance(tes3.player.position)
-							if dist <= 150 then dist = 151 end
-							local lightTest = 1/math.log10(dist/150)
-							if lightTest > lightTerm then lightTerm = lightTest end --the light closest to you is going to be the final value
-						end
+		--exterior
+		lightTerm = config.viewMultiplier
+
+--[[ 		if tes3.worldController.hour.value < 21 or tes3.worldController.hour.value > 5 then
+			-- perfect darkness between 9 and 5
+			-- variable time currently unused, math is hard
+			--local timeMod = 8-math.abs(tes3.worldController.hour.value-13)
+			-- todo
+			-- ambient brightness as a function of hour of the day
+			-- not a perfectly linear scale, as light diffuses through the atmosphere
+
+		for _, cell in pairs(tes3.getActiveCells()) do
+			for ref in cell:iterateReferences(tes3.objectType.light) do
+				if tes3.testLineOfSight({reference1=ref,reference2=tes3.player}) then
+					if (ref.light ~= nil) then
+						local dist = ref.position:distance(tes3.player.position)
+						if dist <= 150 then dist = 151 end
+						local lightTest = 1/math.log10(dist/150)
+						if lightTest > lightTerm then lightTerm = lightTest end --the light closest to you is going to be the final value
 					end
 				end
 			end
-		else --daytime doesn't do this
-			lightTerm = config.viewMultiplier
+		end
+ ]]
+		-- ash, blight, blizzard half visibility
+		if tes3.getCurrentWeather().index == 6 or tes3.getCurrentWeather().index == 7 or tes3.getCurrentWeather().index == 9 then
+			lightTerm = lightTerm/2
+		end
+
+	end
+
+	for ref in tes3.player.cell:iterateReferences(tes3.objectType.npc) do
+		if (ref.light ~= nil) then
+			if tes3.testLineOfSight({reference1=ref,reference2=tes3.player}) then
+				local dist = ref.position:distance(tes3.player.position)
+				if dist <= 150 then dist = 151 end --needed or math goes berserk
+				local lightTest = 1/math.log10(dist/150)
+				if lightTest > lightTerm then lightTerm = lightTest end
+			end
 		end
 	end
 	
 	--tes3.messageBox(math.clamp(lightTerm,config.noViewMultiplier/100,config.viewMultiplier))
 	--tes3.messageBox("%d %f", lightCount, (lightTerm-0.5)/config.viewMultiplier)
-	--tes3ui.findMenu(GUI_Sneak_Multi)
-	tes3ui.findMenu("MenuMulti"):findChild(ids.LightbarBlock):findChild(ids.Lightbar).alpha = (lightTerm-0.5)/config.viewMultiplier
-	--tes3.messageBox("%f",menuLightbar:findChild(ids.lightBar).alpha)
+
+	local finalAlpha = math.clamp((lightTerm-0.5)/config.viewMultiplier,0,1.0)
+
+	tes3ui.findMenu("MenuMulti"):findChild(ids.LightbarBlock):findChild(ids.Lightbar).alpha = finalAlpha
+
+--[[ 
+	if finalAlpha == 1.0 then
+		tes3ui.findMenu("MenuMulti"):findChild(ids.LightbarBlock):findChild(ids.Lightbar).visible = false
+	else
+		tes3ui.findMenu("MenuMulti"):findChild(ids.LightbarBlock):findChild(ids.Lightbar).visible = true
+	end ]]
+
 	return math.clamp(lightTerm,config.noViewMultiplier/100,config.viewMultiplier)
 end
 
@@ -145,7 +176,7 @@ end
 local function startStealthCheck(e)
 	getFootwear()
 	timer.start({duration = 1, callback = forceStealthCheck, iterations=-1})
-	timer.start({duration = 1, callback = forceLightCheck, iterations=-1})
+	timer.start({duration = 0.5, callback = forceLightCheck, iterations=-1})
 end
 
 
@@ -196,13 +227,16 @@ local function detectSneak(e)
 	local fatigueTerm = macp:getFatigueTerm()
 	playerScore = playerScore * fatigueTerm * distanceTerm
 
-	-- Add on chameleon modifier.
-	playerScore = playerScore + (config.chameleonMultiplier/100 * macp.chameleon) --chameleon only counts for half
-	
-	-- Invisibility bonus, defaults to 0 but can be manually restored
-	if (macp.invisibility > 0) then
-		playerScore = playerScore + config.invisibilityBonus
+	local effectiveChameleonMagnitude = math.min(macp.chameleon, 100)
+	local chameleonBonus = ( config.chameleonMultiplier / 100 ) * effectiveChameleonMagnitude
+	local invisBonus = 0
+
+	if macp.invisibility > 0 then
+		invisBonus = config.invisibilityBonus
 	end
+
+	local finalBonus = math.max(chameleonBonus, invisBonus)
+	playerScore = playerScore + finalBonus
 
 	-- Get detector score.
 	local sneakterm
@@ -285,8 +319,10 @@ local function sneakChecker()
 			menuLightbar.visible = false
 		end
 	 else
-		if menuLightbar ~= nil then
-			menuLightbar.visible = true
+		if tes3.player.cell.isInterior == true and config.showLightBar == true then
+			if menuLightbar ~= nil then
+				menuLightbar.visible = true
+			end
 		end
 	end
 end
