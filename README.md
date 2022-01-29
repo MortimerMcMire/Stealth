@@ -68,13 +68,14 @@ There is a Mod Configuration Menu included:
 -Adjust basically every variable in this mod
 
 
-New! Light-based Sneaking Beta
+#### New! Light-based Sneaking Beta
 
 -Only works indoors
 
 -Increases stealth by ash/blight/blizzards outdoors
 
-1.2 Update by Necrolesian
+
+#### 1.2 Update by Necrolesian
 
 -"Enable light-based stealth" off by default.
 
@@ -87,6 +88,7 @@ New! Light-based Sneaking Beta
 -Chameleon and invisibility bonuses don't stack; instead, you will get the highest bonus from either of the two.
 
 -MCM "NPC sneak bonus" slider fixed.
+
 
 #### Requirements
 
