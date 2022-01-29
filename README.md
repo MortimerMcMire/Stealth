@@ -1,4 +1,5 @@
 # Stealth
+V1.2
 Morrowind MWSE-Lua Stealth mod
 
 #### Short explanation
@@ -66,6 +67,27 @@ There is a Mod Configuration Menu included:
 
 -Adjust basically every variable in this mod
 
+
+New! Light-based Sneaking Beta
+
+-Only works indoors
+
+-Increases stealth by ash/blight/blizzards outdoors
+
+1.2 Update by Necrolesian
+
+-"Enable light-based stealth" off by default.
+
+-"Show light bar" off by default.
+
+-"Percentage effectiveness of chameleon" set to 25 (from 50).
+
+-Chameleon magnitude capped at 100.
+
+-Chameleon and invisibility bonuses don't stack; instead, you will get the highest bonus from either of the two.
+
+-MCM "NPC sneak bonus" slider fixed.
+
 #### Requirements
 
 -MGEXE
@@ -83,6 +105,10 @@ There is a Mod Configuration Menu included:
 -Remove or rename the main.lua file. There is also a mod configuration option to disable the mod as well.
 
 #### Special Thanks:
+
+Necrolesian - Bugfixing
+
+Sigourn - Maintainer
 
 Remiros - Invisibility Fix
 
